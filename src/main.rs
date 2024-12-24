@@ -5,23 +5,18 @@ use std::{
 };
 
 mod ray_tracer;
-use ray_tracer::geometry::Sphere;
-use ray_tracer::ray::Ray;
-use ray_tracer::{
-    color::{self, Color},
-    math::unit_vector,
-};
-use ray_tracer::{
-    geometry::Scene,
-    math::{Point3, Vec3},
-};
 
-fn ray_color(ray: &Ray, scene: &Scene) -> Color {
+use ray_tracer::color::{self, Color};
+use ray_tracer::geometry;
+use ray_tracer::math::{self, Point3, Vec3};
+use ray_tracer::ray::{self, Ray};
+
+fn get_ray_color(ray: &ray::Ray, scene: &geometry::Scene) -> Color {
     if let Some(hit) = scene.hit(ray, 0.0, f32::MAX) {
         return 0.5 * Color::new(hit.n().x() + 1.0, hit.n().y() + 1.0, hit.n().z() + 1.0);
     }
 
-    let unit_direction = unit_vector(ray.direction());
+    let unit_direction = math::unit_vector(ray.direction());
     let coefficient = 0.5 * (unit_direction.y() + 1.0); // y is limited between -1 and 1
     let white = Color::new(1.0, 1.0, 1.0);
     let blue = Color::new(0.5, 0.7, 1.0);
@@ -60,9 +55,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // populate scene
     let sphere_center = Point3::new(0.0, 0.0, -1.0);
     let ground_center = Point3::new(0.0, -500.0, 0.0);
-    let mut scene = Scene::new();
-    let sphere = Box::new(Sphere::new(sphere_center, 0.5));
-    let ground = Box::new(Sphere::new(ground_center, 499.0));
+    let mut scene = geometry::Scene::new();
+    let sphere = Box::new(geometry::Sphere::new(sphere_center, 0.5));
+    let ground = Box::new(geometry::Sphere::new(ground_center, 499.0));
     scene.add(sphere);
     scene.add(ground);
 
@@ -78,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 pixel00 + (col as f32 * pixel_delta_u) + (row as f32 * pixel_delta_v);
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, ray_direction);
-            let color = ray_color(&ray, &scene);
+            let color = get_ray_color(&ray, &scene);
             color::write_color(&mut writer, color);
         }
     }
