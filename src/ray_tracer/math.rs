@@ -129,3 +129,40 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
 pub fn unit_vector(v: Vec3) -> Vec3 {
     v / v.length()
 }
+
+#[derive(Clone, Copy)]
+pub struct Interval {
+    pub min: f32,
+    pub max: f32,
+}
+
+impl Interval {
+    pub fn new(min: f32, max: f32) -> Interval {
+        Interval { min, max }
+    }
+    pub fn empty() -> Interval {
+        Interval {
+            min: f32::INFINITY,
+            max: f32::NEG_INFINITY,
+        }
+    }
+
+    pub fn universe() -> Interval {
+        Interval {
+            min: f32::NEG_INFINITY,
+            max: f32::INFINITY,
+        }
+    }
+
+    pub fn size(&self) -> f32 {
+        self.max - self.min
+    }
+
+    pub fn contains(&self, element: f32) -> bool {
+        element >= self.min && element <= self.max
+    }
+
+    pub fn surrounds(&self, element: f32) -> bool {
+        element > self.min && element < self.max
+    }
+}
