@@ -58,7 +58,7 @@ impl Scene {
     }
 
     pub fn hit(&self, ray: &Ray, t_interval: Interval) -> Option<Hit> {
-        let mut closest_t = t_interval.max;
+        let mut closest_t = t_interval.max();
         let mut best_hit = None;
         for entity in &self.entities {
             let maybe_hit = entity.is_hit_by(ray, t_interval);

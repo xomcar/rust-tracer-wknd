@@ -1,6 +1,9 @@
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
+use rand::distributions::Standard;
+use rand::prelude::Distribution;
+
 pub type Point3 = Vec3;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -9,7 +12,7 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    pub fn new(x: f32, y: f32, z: f32) -> Vec3 {
+    pub const fn new(x: f32, y: f32, z: f32) -> Vec3 {
         Vec3 { e: [x, y, z] }
     }
 
@@ -132,19 +135,24 @@ pub fn unit_vector(v: Vec3) -> Vec3 {
 
 #[derive(Clone, Copy)]
 pub struct Interval {
-    pub min: f32,
-    pub max: f32,
+    min: f32,
+    max: f32,
 }
 
 impl Interval {
-    pub fn new(min: f32, max: f32) -> Interval {
+    pub const fn new(min: f32, max: f32) -> Interval {
         Interval { min, max }
     }
+    
     pub fn empty() -> Interval {
         Interval {
             min: f32::INFINITY,
             max: f32::NEG_INFINITY,
         }
+    }
+
+    pub const fn max(&self) -> f32 {
+        self.max
     }
 
     pub fn universe() -> Interval {
@@ -164,5 +172,11 @@ impl Interval {
 
     pub fn surrounds(&self, element: f32) -> bool {
         element > self.min && element < self.max
+    }
+
+    pub fn clamp(&self, element : f32) -> f32 {
+        if element < self.min {return self.min};
+        if element > self.max {return self.max};
+        element
     }
 }

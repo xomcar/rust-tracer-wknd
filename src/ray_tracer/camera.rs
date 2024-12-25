@@ -84,10 +84,12 @@ pub struct Camera {
     pixel00: Point3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    sample_per_pixel: i32,
+    sample_per_pixel_scale: f32, // each surrounding pixel contributes a fraction of 1.0 to color of that pixel
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f32, image_width: i32) -> Camera {
+    pub fn new(aspect_ratio: f32, image_width: i32, sample_per_pixel: i32) -> Camera {
         // image settings
         let image_height = (image_width as f32 / aspect_ratio) as i32;
 
@@ -109,6 +111,7 @@ impl Camera {
         let viewport_center = Vec3::new(0.0, 0.0, focal_length);
         let viewport_q = center - viewport_center - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00 = viewport_q + 0.5 * (pixel_delta_u + pixel_delta_v);
+        let sample_per_pixel_scale = 1.0 / sample_per_pixel as f32;
 
         Camera {
             aspect_ratio,
@@ -118,7 +121,30 @@ impl Camera {
             pixel00,
             pixel_delta_u,
             pixel_delta_v,
+            sample_per_pixel,
+            sample_per_pixel_scale,
         }
+    }
+
+    pub fn get_random_ray(&self, idx_u: i32, idx_v: i32) -> Ray {
+        fn sample_square() -> Vec3 {
+            Vec3::new(
+                rand::random::<f32>() - 0.5,
+                rand::random::<f32>() - 0.5,
+                0.0,
+            )
+        }
+
+        // build camera ray from origin directed to surrounding pixels
+        let offset = sample_square();
+        let pixel_sample = self.pixel00
+            + (idx_u as f32 + offset.x()) * self.pixel_delta_u
+            + (idx_v as f32 + offset.y()) * self.pixel_delta_v;
+
+        let ray_origin = self.center;
+        let ray_direction = pixel_sample - ray_origin;
+
+        Ray::new(ray_origin, ray_direction)
     }
 
     pub fn render_to_file(
@@ -136,23 +162,16 @@ impl Camera {
         for row in 0..self.image_height {
             print!("\rProgress: {}/{}", row + 1, self.image_height);
             for col in 0..self.image_width {
-                let pixel_center = self.pixel00
-                    + (col as f32 * self.pixel_delta_u)
-                    + (row as f32 * self.pixel_delta_v);
-                let ray_direction = pixel_center - self.center;
-                let ray = Ray::new(self.center, ray_direction);
-                let color = get_ray_color(&ray, &scene);
-                color::write_color(&mut writer, color);
+                let mut pixel_color = color::Color::new(0.0, 0.0, 0.0);
+                for _ in 0..self.sample_per_pixel {
+                    let ray = self.get_random_ray(col, row);
+                    pixel_color += get_ray_color(&ray, scene);
+                }
+                color::write_color(&mut writer, self.sample_per_pixel_scale * pixel_color);
             }
         }
+        println!("\nOutput saved to: {}", file_path);
         Ok(())
-    }
-
-    fn render<I>(list: I)
-    where
-        I: IntoIterator,
-    {
-        for item in list {}
     }
 }
 
