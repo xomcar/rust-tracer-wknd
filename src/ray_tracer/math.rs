@@ -1,9 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
-use rand::distributions::Standard;
-use rand::prelude::Distribution;
-
 pub type Point3 = Vec3;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -34,6 +31,18 @@ impl Vec3 {
 
     pub fn length_squared(&self) -> f32 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
+    }
+
+    pub fn random() -> Vec3 {
+        Vec3::new(random(), random(), random())
+    }
+
+    pub fn random_between(min: f32, max: f32) -> Vec3 {
+        Vec3::new(
+            random_between(min, max),
+            random_between(min, max),
+            random_between(min, max),
+        )
     }
 }
 
@@ -129,8 +138,30 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
     )
 }
 
+#[inline]
 pub fn unit_vector(v: Vec3) -> Vec3 {
     v / v.length()
+}
+
+#[inline]
+pub fn random_unit_vector() -> Vec3 {
+    loop {
+        let p = Vec3::random_between(-1.0, 1.0);
+        let length_squared = p.length_squared();
+        if 1e-44 < length_squared && length_squared <= 1.0 {
+            return p / f32::sqrt(length_squared);
+        }
+    }
+}
+
+#[inline]
+pub fn random_on_hemisphere(normal: Vec3) -> Vec3 {
+    let on_unit_sphere = random_unit_vector();
+    if dot(on_unit_sphere, normal) > 0.0 {
+        on_unit_sphere
+    } else {
+        -on_unit_sphere
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -143,7 +174,7 @@ impl Interval {
     pub const fn new(min: f32, max: f32) -> Interval {
         Interval { min, max }
     }
-    
+
     pub fn empty() -> Interval {
         Interval {
             min: f32::INFINITY,
@@ -174,9 +205,21 @@ impl Interval {
         element > self.min && element < self.max
     }
 
-    pub fn clamp(&self, element : f32) -> f32 {
-        if element < self.min {return self.min};
-        if element > self.max {return self.max};
+    pub fn clamp(&self, element: f32) -> f32 {
+        if element < self.min {
+            return self.min;
+        };
+        if element > self.max {
+            return self.max;
+        };
         element
     }
+}
+
+pub fn random() -> f32 {
+    rand::random::<f32>()
+}
+
+pub fn random_between(min: f32, max: f32) -> f32 {
+    min + (max - min) * rand::random::<f32>()
 }

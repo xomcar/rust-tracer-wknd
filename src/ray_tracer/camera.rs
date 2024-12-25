@@ -1,7 +1,7 @@
 use super::{
     color::{self, Color},
     geometry,
-    math::{self, dot, Interval, Point3, Vec3},
+    math::{self, dot, random_on_hemisphere, Interval, Point3, Vec3},
 };
 use std::{
     error::Error,
@@ -84,12 +84,18 @@ pub struct Camera {
     pixel00: Point3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    max_depth: i32,
     sample_per_pixel: i32,
     sample_per_pixel_scale: f32, // each surrounding pixel contributes a fraction of 1.0 to color of that pixel
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f32, image_width: i32, sample_per_pixel: i32) -> Camera {
+    pub fn new(
+        aspect_ratio: f32,
+        image_width: i32,
+        sample_per_pixel: i32,
+        max_depth: i32,
+    ) -> Camera {
         // image settings
         let image_height = (image_width as f32 / aspect_ratio) as i32;
 
@@ -121,6 +127,7 @@ impl Camera {
             pixel00,
             pixel_delta_u,
             pixel_delta_v,
+            max_depth,
             sample_per_pixel,
             sample_per_pixel_scale,
         }
@@ -128,11 +135,7 @@ impl Camera {
 
     pub fn get_random_ray(&self, idx_u: i32, idx_v: i32) -> Ray {
         fn sample_square() -> Vec3 {
-            Vec3::new(
-                rand::random::<f32>() - 0.5,
-                rand::random::<f32>() - 0.5,
-                0.0,
-            )
+            Vec3::new(math::random() - 0.5, math::random() - 0.5, 0.0)
         }
 
         // build camera ray from origin directed to surrounding pixels
@@ -165,7 +168,7 @@ impl Camera {
                 let mut pixel_color = color::Color::new(0.0, 0.0, 0.0);
                 for _ in 0..self.sample_per_pixel {
                     let ray = self.get_random_ray(col, row);
-                    pixel_color += get_ray_color(&ray, scene);
+                    pixel_color += get_ray_color(&ray, scene, self.max_depth);
                 }
                 color::write_color(&mut writer, self.sample_per_pixel_scale * pixel_color);
             }
@@ -175,9 +178,17 @@ impl Camera {
     }
 }
 
-fn get_ray_color(ray: &Ray, scene: &geometry::Scene) -> Color {
-    if let Some(hit) = scene.hit(ray, Interval::new(0.0, f32::INFINITY)) {
-        return 0.5 * Color::new(hit.n().x() + 1.0, hit.n().y() + 1.0, hit.n().z() + 1.0);
+fn get_ray_color(ray: &Ray, scene: &geometry::Scene, depth: i32) -> Color {
+    if depth <= 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
+    static INTERVAL: Interval = Interval::new(0.001, f32::INFINITY);
+
+    if let Some(hit) = scene.hit(ray, INTERVAL) {
+        let dir = random_on_hemisphere(hit.n);
+        let new_ray = Ray::new(hit.p, dir);
+        return 0.5 * get_ray_color(&new_ray, scene, depth - 1);
     }
 
     // no hit, so render gradient in current pixel

@@ -10,9 +10,9 @@ mod ray_tracer;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let aspect_ratio: f32 = 16.0 / 9.0;
-    let image_width = 500;
+    let image_width = 1000;
 
-    let camera = Camera::new(aspect_ratio, image_width, 10);
+    let camera = Camera::new(aspect_ratio, image_width, 10, 50);
 
     let mut output_file = "output.ppm";
     let args: Vec<String> = env::args().collect();
@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ground_center = Point3::new(0.0, -500.0, 0.0);
     let mut scene = Scene::new();
     let sphere = Entity::new_sphere(sphere_center, 0.5);
-    let ground: Entity = Entity::new_sphere(ground_center, 499.0);
+    let ground: Entity = Entity::new_sphere(ground_center, 499.5);
     scene.add(sphere);
     scene.add(ground);
 
